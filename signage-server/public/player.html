@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aquatiq Signage Player</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #000;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    
+    #content-frame {
+      width: 100vw;
+      height: 100vh;
+      border: none;
+      display: block;
+    }
+    
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      z-index: 9999;
+      transition: opacity 0.5s;
+    }
+    
+    #loading.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 5px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    #loading-text {
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+    }
+    
+    #loading-status {
+      font-size: 1rem;
+      opacity: 0.8;
+    }
+    
+    #error-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #1a1a1a;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      padding: 40px;
+      text-align: center;
+    }
+    
+    #error-screen.show {
+      display: flex;
+    }
+    
+    .error-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+    
+    .error-message {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      max-width: 600px;
+    }
+    
+    .retry-info {
+      font-size: 1rem;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <div id="loading-text">Aquatiq Digital Signage</div>
+    <div id="loading-status">Starter opp...</div>
+  </div>
+  
+  <div id="error-screen">
+    <div class="error-icon">⚠️</div>
+    <div class="error-message" id="error-message">Kunne ikke koble til server</div>
+    <div class="retry-info">Prøver igjen om <span id="retry-countdown">30</span> sekunder...</div>
+  </div>
+  
+  <iframe id="content-frame"></iframe>
+  
+  <script src="/player.js"></script>
+  <script>
+    (function() {
+      'use strict';
+      
+      var config = {
+        serverUrl: window.location.origin,
+        heartbeatInterval: 30000,
+        contentCheckInterval: 60000,
+        retryInterval: 30000,
+        maxRetries: 10
+      };
+      
+      var state = {
+        setupId: null,
+        macAddress: null,
+        screenId: null,
+        screenName: null,
+        location: null,
+        template: null,
+        currentContentUrl: null,
+        currentContentId: null,
+        isRegistered: false,
+        retryCount: 0
+      };
+      
+      // Parse URL parameters
+      function parseUrlParams() {
+        var params = new URLSearchParams(window.location.search);
+        state.setupId = params.get('setup');
+        state.macAddress = params.get('mac');
+        state.screenName = params.get('name');
+        state.location = params.get('location');
+        state.template = params.get('template') || 'office-basic';
+        
+        updateStatus('Henter konfigurasjon...');
+      }
+      
+      // Detect MAC address
+      function detectMacAddress(callback) {
+        // Method 1: Try Tizen API
+        try {
+          if (typeof tizen !== 'undefined' && tizen.systeminfo) {
+            tizen.systeminfo.getPropertyValue('NETWORK', function(network) {
+              if (network.mac) {
+                state.macAddress = network.mac;
+                callback(state.macAddress);
+                return;
+              }
+            });
+          }
+        } catch (e) {
+          console.log('Tizen API not available:', e);
+        }
+        
+        // Method 2: Use setup ID or existing MAC
+        if (state.macAddress) {
+          callback(state.macAddress);
+        } else if (state.setupId) {
+          // Use setup ID as temporary identifier
+          callback(state.setupId);
+        } else {
+          callback(null);
+        }
+      }
+      
+      // Register screen with server
+      function registerScreen(callback) {
+        if (state.isRegistered) {
+          callback(true);
+          return;
+        }
+        
+        updateStatus('Registrerer skjerm...');
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', config.serverUrl + '/api/screen-api/register', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        
+        xhr.onload = function() {
+          if (xhr.status === 200 || xhr.status === 201) {
+            var data = JSON.parse(xhr.responseText);
+            state.screenId = data.screen.id;
+            state.isRegistered = true;
+            state.retryCount = 0;
+            
+            // Apply template if specified
+            if (state.template && data.screen.is_new) {
+              applyTemplate(state.template, function() {
+                callback(true);
+              });
+            } else {
+              callback(true);
+            }
+          } else {
+            console.error('Registration failed:', xhr.status, xhr.responseText);
+            callback(false);
+          }
+        };
+        
+        xhr.onerror = function() {
+          console.error('Registration error');
+          callback(false);
+        };
+        
+        xhr.send(JSON.stringify({
+          mac_address: state.macAddress,
+          name: state.screenName || 'Ny Skjerm',
+          location: state.location || 'Ukjent',
+          ip_address: getLocalIP()
+        }));
+      }
+      
+      // Apply deployment template
+      function applyTemplate(templateName, callback) {
+        updateStatus('Setter opp mal: ' + templateName);
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', config.serverUrl + '/api/templates/' + templateName + '/apply', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        
+        xhr.onload = function() {
+          if (xhr.status === 200) {
+            console.log('Template applied successfully');
+          }
+          callback();
+        };
+        
+        xhr.onerror = function() {
+          console.error('Template application failed');
+          callback();
+        };
+        
+        xhr.send(JSON.stringify({
+          screen_id: state.screenId
+        }));
+      }
+      
+      // Load current content
+      function loadContent() {
+        if (!state.macAddress) {
+          showError('Ingen MAC-adresse funnet');
+          return;
+        }
+        
+        updateStatus('Henter innhold...');
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', config.serverUrl + '/api/screen-api/' + 
+          encodeURIComponent(state.macAddress) + '/current', true);
+        
+        xhr.onload = function() {
+          if (xhr.status === 200) {
+            var data = JSON.parse(xhr.responseText);
+            
+            if (data.url && data.url !== state.currentContentUrl) {
+              state.currentContentUrl = data.url;
+              state.currentContentId = data.content_id;
+              displayContent(data.url);
+              
+              // Schedule next check
+              setTimeout(loadContent, data.duration * 1000 || config.contentCheckInterval);
+            }
+            
+            state.retryCount = 0;
+            hideError();
+          } else if (xhr.status === 404) {
+            // Screen not registered yet
+            registerScreen(function(success) {
+              if (success) {
+                loadContent();
+              } else {
+                showError('Kunne ikke registrere skjerm');
+                scheduleRetry();
+              }
+            });
+          } else {
+            showError('Kunne ikke hente innhold');
+            scheduleRetry();
+          }
+        };
+        
+        xhr.onerror = function() {
+          showError('Nettverksfeil - ingen tilkobling til server');
+          scheduleRetry();
+        };
+        
+        xhr.send();
+      }
+      
+      // Display content in iframe
+      function displayContent(url) {
+        var frame = document.getElementById('content-frame');
+        frame.src = url;
+        
+        document.getElementById('loading').classList.add('hide');
+      }
+      
+      // Send heartbeat
+      function sendHeartbeat() {
+        if (!state.macAddress || !state.isRegistered) return;
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', config.serverUrl + '/api/screen-api/' + 
+          encodeURIComponent(state.macAddress) + '/heartbeat', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        
+        xhr.send(JSON.stringify({
+          ip_address: getLocalIP(),
+          content_id: state.currentContentId
+        }));
+      }
+      
+      // Update loading status
+      function updateStatus(text) {
+        document.getElementById('loading-status').textContent = text;
+      }
+      
+      // Show error screen
+      function showError(message) {
+        document.getElementById('error-message').textContent = message;
+        document.getElementById('error-screen').classList.add('show');
+        document.getElementById('loading').classList.add('hide');
+      }
+      
+      // Hide error screen
+      function hideError() {
+        document.getElementById('error-screen').classList.remove('show');
+      }
+      
+      // Schedule retry
+      function scheduleRetry() {
+        state.retryCount++;
+        
+        if (state.retryCount >= config.maxRetries) {
+          showError('Maks antall forsøk nådd. Vennligst kontakt support.');
+          return;
+        }
+        
+        var countdown = config.retryInterval / 1000;
+        var countdownElement = document.getElementById('retry-countdown');
+        
+        var interval = setInterval(function() {
+          countdown--;
+          countdownElement.textContent = countdown;
+          
+          if (countdown <= 0) {
+            clearInterval(interval);
+            hideError();
+            document.getElementById('loading').classList.remove('hide');
+            updateStatus('Prøver igjen...');
+            loadContent();
+          }
+        }, 1000);
+      }
+      
+      // Get local IP (placeholder)
+      function getLocalIP() {
+        return window.location.hostname;
+      }
+      
+      // Initialize
+      function init() {
+        parseUrlParams();
+        
+        detectMacAddress(function(mac) {
+          if (!mac) {
+            showError('Kunne ikke finne MAC-adresse. Vennligst oppgi MAC i URL.');
+            return;
+          }
+          
+          state.macAddress = mac;
+          
+          // Register and load content
+          registerScreen(function(success) {
+            if (success) {
+              loadContent();
+              
+              // Start heartbeat
+              setInterval(sendHeartbeat, config.heartbeatInterval);
+            } else {
+              showError('Kunne ikke registrere skjerm');
+              scheduleRetry();
+            }
+          });
+        });
+      }
+      
+      // Start on DOM ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+</html>

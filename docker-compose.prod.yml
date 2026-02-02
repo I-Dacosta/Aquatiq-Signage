@@ -1,0 +1,87 @@
+services:
+  youtube-proxy:
+    build: ./proxy
+    container_name: aquatiq-youtube-proxy
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./youtube-cookies.txt:/app/youtube-cookies.txt
+    shm_size: '2gb'
+    networks:
+      - aquatiq-backend
+      - aquatiq-net
+
+  # DEPRECATED: Functionality moved to signage-server
+  # video-server:
+  #   build: ./video-server
+  #   container_name: aquatiq-video-server
+
+  # DEPRECATED: Functionality moved to signage-server  
+  # pages-server:
+  #   build: ./pages-server
+  #   container_name: aquatiq-pages-server
+
+  screenshot-server:
+    build: ./screenshot-server
+    container_name: aquatiq-screenshot-server
+    restart: always
+    env_file:
+      - screenshot-server/.env
+    environment:
+      - POSTGRES_PASSWORD=8rSqS08wB+mCg3ncw+Ag+9dyxGGozcXncvgpjZtALY0=
+      - REDIS_PASSWORD=JSdBAl5vkcPtDStUVkdHPw8m4TjX/GCdLkeggZf2Gwc=
+      - NATS_AUTH_TOKEN=AZ2pIJV3YHpPPeaE25M1Q4KPHH/0L9fN8PMAwbrHPnM=
+      - POSTGRES_HOST=postgres.aquatiq-backend
+      - REDIS_HOST=redis.aquatiq-backend
+      - NATS_HOST=nats.aquatiq-backend
+    volumes:
+      - screenshot-storage:/app/screenshots
+    shm_size: '2gb'
+    networks:
+      - aquatiq-backend
+      - aquatiq-net
+      - internal
+
+  signage-server:
+    build: ./signage-server
+    container_name: aquatiq-signage-server
+    restart: always
+    env_file:
+      - signage-server/.env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=internal"
+      - "traefik.http.routers.signage-server.rule=Host(`signage.aquatiq.com`)"
+      - "traefik.http.routers.signage-server.entrypoints=web,websecure"
+      - "traefik.http.routers.signage-server.tls=true"
+      - "traefik.http.services.signage-server.loadbalancer.server.port=3002"
+    environment:
+      - POSTGRES_PASSWORD=8rSqS08wB+mCg3ncw+Ag+9dyxGGozcXncvgpjZtALY0=
+      - POSTGRES_HOST=postgres.aquatiq-backend
+      - POSTGRES_DB=aquatiq_signage
+      - VIDEOS_DIR=/app/videos
+      - VIDEO_BASE_URL=https://signage.aquatiq.com
+      - TOOLS_BASE_URL=https://tools.aquatiq.com
+    volumes:
+      - signage-videos:/app/videos
+    networks:
+      - aquatiq-backend
+      - aquatiq-net
+      - internal
+
+networks:
+  aquatiq-net:
+    driver: bridge
+  aquatiq-backend:
+    name: aquatiq-backend
+    external: true
+  internal:
+    name: internal
+    external: true
+
+volumes:
+  signage-videos:
+    driver: local
+  screenshot-storage:
+    driver: local

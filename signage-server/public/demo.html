@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aquatiq Signage Player Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f0f0;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #151F6D;
+      margin-bottom: 20px;
+    }
+    
+    .info {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    
+    .info p {
+      margin: 5px 0;
+      color: #666;
+    }
+    
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    
+    .status.online {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status.offline {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    #content-display {
+      width: 100%;
+      height: 600px;
+      border: 2px solid #151F6D;
+      border-radius: 4px;
+      margin-top: 20px;
+      background: white;
+    }
+    
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      background: #151F6D;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    
+    button:hover {
+      background: #1e3a8a;
+    }
+    
+    .logs {
+      margin-top: 20px;
+      background: #000;
+      color: #0f0;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .log-entry {
+      margin: 2px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🖥️ Aquatiq Signage Player Demo</h1>
+    
+    <div class="info">
+      <p><strong>Status:</strong> <span class="status offline" id="player-status">Initializing...</span></p>
+      <p><strong>MAC Address:</strong> <span id="mac-address">Detecting...</span></p>
+      <p><strong>Server:</strong> <span id="server-url">-</span></p>
+      <p><strong>Current Content:</strong> <span id="current-content">None</span></p>
+      <p><strong>Schedule:</strong> <span id="current-schedule">None</span></p>
+    </div>
+    
+    <iframe id="content-display" src="about:blank"></iframe>
+    
+    <div class="controls">
+      <button onclick="reloadPlayer()">🔄 Reload Player</button>
+      <button onclick="testFallback()">⚠️ Test Offline Mode</button>
+      <button onclick="clearLogs()">🗑️ Clear Logs</button>
+    </div>
+    
+    <div class="logs" id="console-logs">
+      <div class="log-entry">[System] Player demo loaded</div>
+    </div>
+  </div>
+  
+  <script>
+    // Override SIGNAGE_SERVER_URL for demo
+    window.SIGNAGE_SERVER_URL = window.location.origin;
+    
+    // Intercept console.log for display
+    var originalLog = console.log;
+    console.log = function() {
+      originalLog.apply(console, arguments);
+      
+      var logs = document.getElementById('console-logs');
+      var entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = Array.from(arguments).join(' ');
+      logs.appendChild(entry);
+      logs.scrollTop = logs.scrollHeight;
+    };
+    
+    // Update UI when player initializes
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        if (window.SignagePlayer) {
+          document.getElementById('player-status').textContent = 'Online';
+          document.getElementById('player-status').className = 'status online';
+          document.getElementById('mac-address').textContent = 
+            window.SignagePlayer.config.macAddress || 'Not detected';
+          document.getElementById('server-url').textContent = 
+            window.SignagePlayer.config.serverUrl;
+        }
+      }, 1000);
+    });
+    
+    function reloadPlayer() {
+      console.log('[Demo] Reloading player...');
+      if (window.SignagePlayer) {
+        window.SignagePlayer.loadCurrentContent();
+      }
+    }
+    
+    function testFallback() {
+      console.log('[Demo] Testing fallback mode...');
+      if (window.SignagePlayer) {
+        window.SignagePlayer.displayFallback();
+      }
+    }
+    
+    function clearLogs() {
+      document.getElementById('console-logs').innerHTML = 
+        '<div class="log-entry">[System] Logs cleared</div>';
+    }
+  </script>
+  
+  <!-- Load the signage player -->
+  <script src="/player.js"></script>
+</body>
+</html>

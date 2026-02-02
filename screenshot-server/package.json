@@ -1,0 +1,21 @@
+{
+  "name": "screenshot-server",
+  "version": "1.0.0",
+  "description": "Screenshot service for digital signage - captures authenticated web pages",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "puppeteer": "^24.29.0",
+    "pg": "^8.15.0",
+    "cors": "^2.8.5",
+    "uuid": "^11.0.3",
+    "node-cron": "^4.2.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

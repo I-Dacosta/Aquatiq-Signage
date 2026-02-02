@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aquatiq Signage - TV Oppsett</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+    
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+    
+    .header p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+    
+    .setup-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+    
+    .card h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 1.5rem;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      color: #555;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .qr-container {
+      text-align: center;
+      margin-top: 20px;
+      display: none;
+    }
+    
+    .qr-container.show {
+      display: block;
+    }
+    
+    #qrcode {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      display: inline-block;
+      margin-bottom: 15px;
+    }
+    
+    .url-display {
+      background: #fff9e6;
+      border: 2px solid #ffd700;
+      padding: 20px;
+      border-radius: 8px;
+      word-break: break-all;
+      font-family: monospace;
+      font-size: 1rem;
+      color: #333;
+      font-weight: 500;
+      box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+    }
+    5px;
+      padding: 14px;
+      background: #4caf50;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    
+    .copy-btn:hover {
+      background: #45a049;
+      transform: translateY(-2px)
+    .copy-btn:hover {
+      background: #45a049;
+    }
+    
+    .instructions {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      margin-top: 20px;
+    }
+    
+    .instructions h3 {
+      color: #333;
+      margin-bottom: 15px;
+    }
+    
+    .steps {
+      list-style: none;
+      counter-reset: step-counter;
+    }
+    
+    .steps li {
+      counter-increment: step-counter;
+      margin-bottom: 20px;
+      padding-left: 50px;
+      position: relative;
+      color: #555;
+      line-height: 1.6;
+    }
+    
+    .steps li::before {
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 35px;
+      height: 35px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+    
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      margin-top: 20px;
+      border-radius: 4px;
+    }
+    
+    .info-box strong {
+      color: #1976d2;
+    }
+    
+    .template-select {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 15px;
+    }
+    
+    .template-option {
+      background: white;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      border: 2px solid #e0e0e0;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .template-option:hover {
+      border-color: #667eea;
+    }
+    
+    .template-option.selected {
+      border-color: #667eea;
+      background: #f0f4ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🖥️ Aquatiq Digital Signage</h1>
+      <p>Enkelt TV-oppsett for Samsung MagicInfo</p>
+    </div>
+    
+    <div class="setup-grid">
+      <!-- Quick Setup Card -->
+      <div class="card">
+        <h2>⚡ Hurtig Oppsett</h2>
+        <div class="form-group">
+          <label for="screenName">Skjerm Navn</label>
+          <input type="text" id="screenName" placeholder="f.eks. Resepsjon Display" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="location">Plassering</label>
+          <input type="text" id="location" placeholder="f.eks. Hovedkontor" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="template">Velg Mal</label>
+          <select id="template">
+            <option value="office-basic">Kontor (Standard)</option>
+            <option value="warehouse">Lager (BX Dashboard)</option>
+            <option value="retail">Butikk</option>
+            <option value="restaurant">Restaurant</option>
+          </select>
+        </div>
+        
+        <button onclick="generateQR()">🔗 Generer URL & QR-kode</button>
+        
+        <div id="qrContainer" class="qr-container">
+          <h3 style="margin-bottom: 15px; color: #333;">📱 Bruk i URL Launcher:</h3>
+          <div class="url-display" id="urlDisplay"></div>
+          <button class="copy-btn" onclick="copyUrl()">📋 Kopier URL</button>
+          
+          <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+            <p style="color: #666; margin-bottom: 10px; font-size: 0.9rem;">Eller skann QR-koden:</p>
+            <div id="qrcode"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Manual Setup Card -->
+      <div class="card">
+        <h2>🔧 Manuell Oppsett</h2>
+        <div class="form-group">
+          <label for="manualName">Skjerm Navn</label>
+          <input type="text" id="manualName" placeholder="f.eks. Kantine Display">
+        </div>
+        
+        <div class="form-group">
+          <label for="manualLocation">Plassering</label>
+          <input type="text" id="manualLocation" placeholder="f.eks. Bygg A">
+        </div>
+        
+        <div class="form-group">
+          <label for="macAddress">MAC Adresse (valgfri)</label>
+          <input type="text" id="macAddress" placeholder="00:11:22:33:44:55">
+          <small style="color: #888; font-size: 0.85rem; display: block; margin-top: 5px;">
+            La stå tom for auto-registrering
+          </small>
+        </div>
+        
+        <button onclick="manualSetup()">🔗 Generer URL & QR-kode</button>
+        
+        <div id="manualQrContainer" class="qr-container">
+          <h3 style="margin-bottom: 15px; color: #333;">📱 Bruk i URL Launcher:</h3>
+          <div class="url-display" id="manualUrlDisplay"></div>
+          <button class="copy-btn" onclick="copyManualUrl()">📋 Kopier URL</button>
+          
+          <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+            <p style="color: #666; margin-bottom: 10px; font-size: 0.9rem;">Eller skann QR-koden:</p>
+            <div id="manualQrcode"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Instructions -->
+    <div class="instructions">
+      <h3>📖 Slik setter du opp din Samsung TV</h3>
+      <ol class="steps">URL</strong><br>
+          Fyll ut skjermdetaljene ovenfor og klikk "Generer URL & QR-kode"
+        </li>
+        <li>
+          <strong>Kopier URL-en</strong><br>
+          Klikk på "📋 Kopier URL" knappen (URL-en er nå kopiert til utklippstavlen)
+        </li>
+        <li>
+          <strong>Åpne URL Launcher på TV-en</strong><br>
+          Gå til MagicInfo → URL Launcher på din Samsung-skjerm
+        </li>
+        <li>
+          <strong>Lim inn URL-en</strong><br>
+          Lim inn den kopierte URL-en i URL-feltet<br>
+          <small style="color: #888;">(Alternativ: Skann QR-koden med fjernkontrollen)</small>
+          <strong>Skann QR-koden eller skriv inn URL</strong><br>
+          Bruk Samsung-fjernkontrollen til å skanne QR-koden, eller skriv inn URL-en manuelt
+        </li>
+        <li>
+          <strong>Ferdig! 🎉</strong><br>
+          TV-en vil automatisk registrere seg og starte avspilling av innhold
+        </li>
+      </ol>Kopier URL-en og lim den direkte inn i URL Launcher på TV-en. 
+        TV-en vil automatisk registrere seg ved første tilkobling. Ingen manuell konfigurasjon nødvendig!
+      </div>
+      
+      <div class="info-box" style="background: #f0f8ff; border-color: #2196f3; margin-top: 15px;">
+        <strong>📱 URL Format:</strong> URL-en er superenkel!<br>
+        <code style="display: block; margin-top: 8px; padding: 8px; background: white; border-radius: 4px; font-size: 1rem; font-weight: 600;">
+          https://signage.aquatiq.com/tv/abc123
+        </code>
+        <small style="display: block; margin-top: 8px; color: #666;">
+          Bare 6 tegn å skrive - mye enklere enn før! ✨
+        </small>
+      </div>
+      
+      <div class="info-box">
+        <strong>💡 Tips:</strong> Kopier URL-en og lim den direkte inn i URL Launcher på TV-en. 
+        TV-en vil automatisk registrere seg ved første tilkobling. Ingen manuell konfigurasjon nødvendig!
+      </div>
+      
+      <div class="info-box" style="background: #fff3e0; border-color: #ff9800; margin-top: 15px;">
+        <strong>⚙️ MagicInfo Innstillinger:</strong>
+        <ul style="margin-top: 10px; margin-left: 20px;">
+          <li>Play Mode: URL</li>
+          <li>URL Refresh: 30 sekunder</li>
+          <li>Auto Play: On</li>
+          <li>Kiosk Mode: On (anbefalt)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const SERVER_URL = window.location.origin;
+    let currentUrl = '';
+    let manualUrl = '';
+    
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0;
+        var v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+    
+    function generateQR() {
+      const name = document.getElementById('screenName').value.trim();
+      const location = document.getElementById('location').value.trim();
+      const template = document.getElementById('template').value;
+      
+      if (!name || !location) {
+        alert('Vennligst fyll ut skjermnavn og plassering');
+        return;
+      }
+      
+      // Show loading state
+      document.getElementById('urlDisplay').textContent = 'Genererer kort URL...';
+      document.getElementById('qrContainer').classList.add('show');
+      
+      // Create short URL via API
+      fetch(`${SERVER_URL}/api/short-url`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, location, template })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          currentUrl = data.short_url;
+          
+          // Clear previous QR code
+          document.getElementById('qrcode').innerHTML = '';
+          
+          // Generate QR code
+          QRCode.toCanvas(
+            document.getElementById('qrcode'),
+            currentUrl,
+            {
+              width: 250,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            },
+            function(error) {
+              if (error) {
+                console.error(error);
+                alert('Feil ved generering av QR-kode');
+              }
+            }
+          );
+          
+          // Display short URL
+          document.getElementById('urlDisplay').textContent = currentUrl;
+        } else {
+          alert('Kunne ikke generere kort URL: ' + (data.error || 'Ukjent feil'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Kunne ikke generere kort URL');
+      });
+    }
+    
+    function manualSetup() {
+      const name = document.getElementById('manualName').value.trim();
+      const location = document.getElementById('manualLocation').value.trim();
+      const mac = document.getElementById('macAddress').value.trim();
+      const template = 'office-basic'; // Default template
+      
+      if (!name || !location) {
+        alert('Vennligst fyll ut skjermnavn og plassering');
+        return;
+      }
+      
+      // Show loading
+      document.getElementById('manualUrlDisplay').textContent = 'Genererer kort URL...';
+      document.getElementById('manualQrContainer').classList.add('show');
+      
+      // Create short URL via API
+      fetch(`${SERVER_URL}/api/short-url`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, location, template })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          manualUrl = data.short_url;
+          
+          // Clear previous QR code
+          const qrElement = document.getElementById('manualQrcode');
+          qrElement.innerHTML = '';
+          
+          // Generate QR code
+          const canvas = document.createElement('canvas');
+          qrElement.appendChild(canvas);
+          
+          QRCode.toCanvas(
+            canvas,
+            manualUrl,
+            {
+              width: 250,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            },
+            function(error) {
+              if (error) {
+                console.error(error);
+                alert('Feil ved generering av QR-kode');
+              }
+            }
+          );
+          
+          // Display short URL
+          document.getElementById('manualUrlDisplay').textContent = manualUrl;
+        } else {
+          alert('Kunne ikke generere kort URL: ' + (data.error || 'Ukjent feil'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Kunne ikke generere kort URL');
+      });
+    }
+    
+    function copyUrl() {
+      navigator.clipboard.writeText(currentUrl).then(function() {
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = '✅ Kopiert!';
+        setTimeout(() => {
+          btn.textContent = originalText;
+        }, 2000);
+      }, function(err) {
+        alert('Kunne ikke kopiere URL: ' + err);
+      });
+    }
+    
+    function copyManualUrl() {
+      navigator.clipboard.writeText(manualUrl).then(function() {
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = '✅ Kopiert!';
+        setTimeout(() => {
+          btn.textContent = originalText;
+        }, 2000);
+      }, function(err) {
+        alert('Kunne ikke kopiere URL: ' + err);
+      });
+    }
+  </script>
+</body>
+</html>

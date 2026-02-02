@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aquatiq Digital Signage - Offline</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #151F6D 0%, #1e3a8a 100%);
+      color: white;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    .container {
+      text-align: center;
+      padding: 40px;
+      max-width: 800px;
+    }
+    
+    .logo {
+      width: 200px;
+      height: auto;
+      margin-bottom: 40px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+      }
+    }
+    
+    h1 {
+      font-size: 48px;
+      font-weight: 300;
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+    }
+    
+    .status {
+      font-size: 24px;
+      margin-bottom: 30px;
+      opacity: 0.9;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      margin: 30px auto;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .info {
+      font-size: 18px;
+      opacity: 0.7;
+      margin-top: 40px;
+      line-height: 1.6;
+    }
+    
+    .time {
+      font-size: 72px;
+      font-weight: 200;
+      margin: 40px 0;
+      letter-spacing: 4px;
+    }
+    
+    .date {
+      font-size: 32px;
+      opacity: 0.8;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <svg class="logo" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+      <text x="0" y="40" fill="white" font-family="Arial, sans-serif" font-size="36" font-weight="bold">
+        AQUATIQ
+      </text>
+    </svg>
+    
+    <h1>Digital Signage</h1>
+    
+    <div class="time" id="time">00:00:00</div>
+    <div class="date" id="date">Loading...</div>
+    
+    <div class="status">
+      Kobler til server...
+    </div>
+    
+    <div class="spinner"></div>
+    
+    <div class="info">
+      <p>Skjermen vil automatisk koble til igjen når tilkoblingen er gjenopprettet.</p>
+      <p style="margin-top: 10px; font-size: 14px; opacity: 0.5;">
+        Hvis problemet vedvarer, kontakt IT-support
+      </p>
+    </div>
+  </div>
+  
+  <script>
+    // Update time and date
+    function updateClock() {
+      var now = new Date();
+      
+      // Time
+      var hours = String(now.getHours()).padStart(2, '0');
+      var minutes = String(now.getMinutes()).padStart(2, '0');
+      var seconds = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById('time').textContent = hours + ':' + minutes + ':' + seconds;
+      
+      // Date
+      var days = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
+      var months = ['januar', 'februar', 'mars', 'april', 'mai', 'juni', 
+                    'juli', 'august', 'september', 'oktober', 'november', 'desember'];
+      
+      var dayName = days[now.getDay()];
+      var day = now.getDate();
+      var monthName = months[now.getMonth()];
+      var year = now.getFullYear();
+      
+      document.getElementById('date').textContent = 
+        dayName + ' ' + day + '. ' + monthName + ' ' + year;
+    }
+    
+    // Update every second
+    updateClock();
+    setInterval(updateClock, 1000);
+    
+    // Retry connection every 30 seconds
+    setInterval(function() {
+      // Try to reload - player.js will handle reconnection
+      if (window.SignagePlayer) {
+        window.SignagePlayer.loadCurrentContent();
+      }
+    }, 30000);
+  </script>
+</body>
+</html>
