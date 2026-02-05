@@ -32,6 +32,13 @@ export function setupScheduleRoutes(app: Express) {
       res.json(result.rows);
     } catch (error) {
       console.error('Error fetching schedules:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📅 Returning mock schedules data (database unavailable)');
+        return res.json([
+          { id: '1', screen_id: '1', screen_name: 'Main Display', playlist_id: '1', playlist_name: 'Main Playlist', start_time: '08:00:00', end_time: '18:00:00', days_of_week: ['Mon','Tue','Wed','Thu','Fri'], priority: 1, is_active: true, created_at: new Date() },
+          { id: '2', screen_id: '2', screen_name: 'Conference Room', playlist_id: '2', playlist_name: 'Secondary Playlist', start_time: '09:00:00', end_time: '17:00:00', days_of_week: ['Mon','Tue','Wed','Thu','Fri'], priority: 1, is_active: true, created_at: new Date() },
+        ]);
+      }
       res.status(500).json({ error: 'Failed to fetch schedules' });
     }
   });

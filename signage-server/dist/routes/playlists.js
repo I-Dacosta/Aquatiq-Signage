@@ -20,6 +20,13 @@ function setupPlaylistRoutes(app) {
         }
         catch (error) {
             console.error('Error fetching playlists:', error);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('🎬 Returning mock playlists data (database unavailable)');
+                return res.json([
+                    { id: '1', name: 'Main Playlist', description: 'Primary content rotation', is_default: true, item_count: 3, created_at: new Date() },
+                    { id: '2', name: 'Secondary Playlist', description: 'Fallback content', is_default: false, item_count: 2, created_at: new Date() },
+                ]);
+            }
             res.status(500).json({ error: 'Failed to fetch playlists' });
         }
     });

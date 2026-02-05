@@ -25,6 +25,13 @@ function setupContentRoutes(app) {
         }
         catch (error) {
             console.error('Error fetching content:', error);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('📺 Returning mock content data (database unavailable)');
+                return res.json([
+                    { id: '1', name: 'Welcome Video', type: 'video', url: 'https://example.com/welcome.mp4', duration: 30, thumbnail_url: '', is_active: true, created_at: new Date() },
+                    { id: '2', name: 'News Feed', type: 'feed', url: 'https://example.com/news', duration: 60, thumbnail_url: '', is_active: true, created_at: new Date() },
+                ]);
+            }
             res.status(500).json({ error: 'Failed to fetch content' });
         }
     });

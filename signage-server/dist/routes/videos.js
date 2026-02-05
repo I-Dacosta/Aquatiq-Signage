@@ -45,7 +45,9 @@ const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 const router = (0, express_1.Router)();
 // Videos directory
-const VIDEOS_DIR = process.env.VIDEOS_DIR || '/app/videos';
+const VIDEOS_DIR = process.env.VIDEOS_DIR ?
+    path.resolve(process.env.VIDEOS_DIR) :
+    path.resolve(process.cwd(), 'videos');
 exports.VIDEOS_DIR = VIDEOS_DIR;
 // Ensure videos directory exists
 if (!fs.existsSync(VIDEOS_DIR)) {
@@ -169,6 +171,39 @@ function setupVideoRoutes(pool) {
         }
         catch (error) {
             console.error('List videos error:', error);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('🎥 Returning mock videos data (database unavailable)');
+                return res.json({
+                    videos: [
+                        {
+                            id: '1',
+                            title: 'Welcome Video',
+                            description: 'Introduction video',
+                            filename: null,
+                            sharepointUrl: 'https://example.com/video1.mp4',
+                            fileSize: 104857600,
+                            mimeType: 'video/mp4',
+                            uploadDate: new Date('2024-02-01'),
+                            viewCount: 42,
+                            embedUrl: '/api/videos/embed/1',
+                            videoUrl: null
+                        },
+                        {
+                            id: '2',
+                            title: 'Product Demo',
+                            description: 'Product demonstration video',
+                            filename: null,
+                            sharepointUrl: 'https://example.com/video2.mp4',
+                            fileSize: 262144000,
+                            mimeType: 'video/mp4',
+                            uploadDate: new Date('2024-02-03'),
+                            viewCount: 28,
+                            embedUrl: '/api/videos/embed/2',
+                            videoUrl: null
+                        }
+                    ]
+                });
+            }
             res.status(500).json({ error: 'Failed to fetch videos' });
         }
     });

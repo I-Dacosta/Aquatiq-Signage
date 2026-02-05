@@ -44,6 +44,31 @@ function setupProxyRoutes(pool) {
         try {
             const data = await fetchBXData();
             if (!data) {
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('📊 Returning mock BX data (service unavailable)');
+                    return res.json({
+                        lists: 2,
+                        lines: 5,
+                        items: 150,
+                        updated: new Date().toISOString(),
+                        data: [
+                            {
+                                name: 'Warehouse A',
+                                lines: [
+                                    { name: 'Electronics', quantity: 50 },
+                                    { name: 'Furniture', quantity: 30 }
+                                ]
+                            },
+                            {
+                                name: 'Warehouse B',
+                                lines: [
+                                    { name: 'Supplies', quantity: 40 },
+                                    { name: 'Equipment', quantity: 20 }
+                                ]
+                            }
+                        ]
+                    });
+                }
                 return res.status(500).json({ error: 'Failed to fetch BX data' });
             }
             // Calculate stats
@@ -67,6 +92,31 @@ function setupProxyRoutes(pool) {
         }
         catch (error) {
             console.error('Error processing BX data:', error);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('📊 Returning mock BX data (error occurred)');
+                return res.json({
+                    lists: 2,
+                    lines: 5,
+                    items: 150,
+                    updated: new Date().toISOString(),
+                    data: [
+                        {
+                            name: 'Warehouse A',
+                            lines: [
+                                { name: 'Electronics', quantity: 50 },
+                                { name: 'Furniture', quantity: 30 }
+                            ]
+                        },
+                        {
+                            name: 'Warehouse B',
+                            lines: [
+                                { name: 'Supplies', quantity: 40 },
+                                { name: 'Equipment', quantity: 20 }
+                            ]
+                        }
+                    ]
+                });
+            }
             res.status(500).json({ error: 'Failed to process BX data' });
         }
     });

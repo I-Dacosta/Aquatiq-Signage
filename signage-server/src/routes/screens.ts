@@ -20,6 +20,28 @@ export function setupScreenRoutes(app: Express) {
       res.json(result.rows);
     } catch (error) {
       console.error('Error fetching screens:', error);
+      // Return mock data in development mode when database is unavailable
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📋 Returning mock screens data (database unavailable)');
+        return res.json([
+          {
+            id: '1',
+            name: 'Main Display',
+            location: 'Reception',
+            mac_address: '00:11:22:33:44:55',
+            ip_address: '192.168.1.100',
+            created_at: new Date().toISOString(),
+          },
+          {
+            id: '2',
+            name: 'Conference Room',
+            location: 'Building A',
+            mac_address: '00:11:22:33:44:56',
+            ip_address: '192.168.1.101',
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      }
       res.status(500).json({ error: 'Failed to fetch screens' });
     }
   });
