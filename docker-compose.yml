@@ -10,16 +10,8 @@ services:
     volumes:
       - ./youtube-cookies.txt:/app/youtube-cookies.txt
     shm_size: '2gb'
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=taskpriority_internal"
-      - "traefik.http.routers.aquatiq-proxy.rule=Host(`youtube.sensilist.com`)"
-      - "traefik.http.routers.aquatiq-proxy.entrypoints=websecure"
-      - "traefik.http.routers.aquatiq-proxy.tls.certresolver=mytlschallenge"
-      - "traefik.http.services.aquatiq-proxy.loadbalancer.server.port=8085"
     networks:
-      - aquatiq-net
-      - internal
+      - aquatiq-local
 
   ntp-server:
     image: cturra/ntp
@@ -31,28 +23,7 @@ services:
     ports:
       - "123:123/udp"
     networks:
-      - aquatiq-net
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: aquatiq-postgres
-    restart: always
-    env_file:
-      - .env
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-aquatiq_signage}
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./signage-server/schema.sql:/docker-entrypoint-initdb.d/schema.sql
-    networks:
-      - aquatiq-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - aquatiq-local
 
   signage-server:
     build: ./signage-server
@@ -62,10 +33,10 @@ services:
       - .env
       - signage-server/.env
     environment:
-      - POSTGRES_HOST=aquatiq-postgres
+      - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=${POSTGRES_DB:-aquatiq_signage}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_USER=${POSTGRES_USER:-aquatiq}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - VIDEOS_DIR=/app/videos
       - NODE_ENV=${NODE_ENV:-production}
@@ -73,20 +44,9 @@ services:
       - signage-videos:/app/videos
       - ./signage-server/src:/app/src
     ports:
-      - "3002:3002"
+      - "127.0.0.1:3002:3002"
     networks:
-      - aquatiq-net
-      - internal
-    depends_on:
-      postgres:
-        condition: service_healthy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=taskpriority_internal"
-      - "traefik.http.routers.aquatiq-signage.rule=Host(`signage.sensilist.com`)"
-      - "traefik.http.routers.aquatiq-signage.entrypoints=websecure"
-      - "traefik.http.routers.aquatiq-signage.tls.certresolver=mytlschallenge"
-      - "traefik.http.services.aquatiq-signage.loadbalancer.server.port=3002"
+      - aquatiq-local
 
   screenshot-server:
     build: ./screenshot-server
@@ -97,30 +57,16 @@ services:
     volumes:
       - screenshot-storage:/app/screenshots
     shm_size: '2gb'
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=taskpriority_internal"
-      - "traefik.http.routers.aquatiq-screenshot.rule=Host(`signage.sensilist.com`) && PathPrefix(`/screenshot`)"
-      - "traefik.http.routers.aquatiq-screenshot.entrypoints=websecure"
-      - "traefik.http.routers.aquatiq-screenshot.tls.certresolver=mytlschallenge"
-      - "traefik.http.routers.aquatiq-screenshot.priority=60"
-      - "traefik.http.services.aquatiq-screenshot.loadbalancer.server.port=3003"
     networks:
-      - aquatiq-net
-      - internal
+      - aquatiq-local
 
   
 
 networks:
-  aquatiq-net:
-    driver: bridge
-  internal:
-    name: taskpriority_internal
+  aquatiq-local:
     external: true
 
 volumes:
-  postgres-data:
-    driver: local
   signage-videos:
     driver: local
   screenshot-storage:
