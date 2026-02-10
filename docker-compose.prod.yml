@@ -1,6 +1,6 @@
 services:
   youtube-proxy:
-    build: ./proxy
+    image: ghcr.io/i-dacosta/aquatiq-signage/youtube-proxy:latest
     container_name: aquatiq-youtube-proxy
     restart: always
     env_file:
@@ -23,7 +23,7 @@ services:
   #   container_name: aquatiq-pages-server
 
   screenshot-server:
-    build: ./screenshot-server
+    image: ghcr.io/i-dacosta/aquatiq-signage/screenshot-server:latest
     container_name: aquatiq-screenshot-server
     restart: always
     env_file:
@@ -44,7 +44,7 @@ services:
       - internal
 
   signage-server:
-    build: ./signage-server
+    image: ghcr.io/i-dacosta/aquatiq-signage/signage-server:latest
     container_name: aquatiq-signage-server
     restart: always
     env_file:
