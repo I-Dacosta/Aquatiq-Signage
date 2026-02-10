@@ -1,5 +1,21 @@
 # GitHub Workflow Setup - Complete ✅
 
+## ⚠️ CRITICAL: VPS Must Be Set Up First!
+
+Before the GitHub Actions workflow can work, you **MUST** complete the initial VPS setup:
+
+👉 **[Follow VPS_INITIAL_SETUP.md First](VPS_INITIAL_SETUP.md)** 👈
+
+The automated workflow cannot deploy to an empty VPS. You need to:
+1. Clone the repository on the VPS
+2. Create all .env files
+3. Create Docker networks
+4. Login to GitHub Container Registry
+
+**Then come back here to configure GitHub Actions.**
+
+---
+
 ## What We've Created
 
 ### 1. GitHub Actions Workflow
