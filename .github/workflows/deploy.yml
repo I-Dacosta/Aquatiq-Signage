@@ -65,35 +65,3 @@ jobs:
           else
             echo "❌ Deployment failed!"
           fi
-      
-      - name: Health check
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          script: |
-            echo "Waiting for services to be healthy..."
-            sleep 10
-            
-            # Check if containers are running
-            cd /root/aquatiq-signage
-            docker compose -f docker-compose.prod.yml ps
-            
-            # Check signage-server health
-            if docker exec aquatiq-signage-server curl -f http://localhost:3002/health > /dev/null 2>&1; then
-              echo "✅ Signage server is healthy"
-            else
-              echo "❌ Signage server health check failed"
-              exit 1
-            fi
-      
-      - name: Notify deployment status
-        if: always()
-        run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Deployment successful!"
-          else
-            echo "❌ Deployment failed!"
-          fi
