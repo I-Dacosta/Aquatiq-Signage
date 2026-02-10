@@ -34,7 +34,7 @@ jobs:
         id: meta-proxy
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/youtube-proxy
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/aquatiq-signage/youtube-proxy
           tags: |
             type=sha,prefix={{branch}}-
             type=ref,event=branch
@@ -54,7 +54,7 @@ jobs:
         id: meta-signage
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/signage-server
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/aquatiq-signage/signage-server
           tags: |
             type=sha,prefix={{branch}}-
             type=ref,event=branch
@@ -74,7 +74,7 @@ jobs:
         id: meta-screenshot
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/screenshot-server
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/aquatiq-signage/screenshot-server
           tags: |
             type=sha,prefix={{branch}}-
             type=ref,event=branch
