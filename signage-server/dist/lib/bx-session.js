@@ -45,14 +45,20 @@ async function getBxSession() {
             return null;
         }
         // Extract BxSID from Set-Cookie header
+        // Note: headers.get('set-cookie') can return a string or array depending on Node.js version
         const setCookieHeader = loginResponse.headers.get('set-cookie');
         if (!setCookieHeader) {
             console.error('No Set-Cookie header in login response');
             return null;
         }
-        const bxSidMatch = setCookieHeader.match(/BxSID=([^;]+)/);
+        // Handle both string and array formats
+        const setCookieString = Array.isArray(setCookieHeader)
+            ? setCookieHeader.join('; ')
+            : setCookieHeader;
+        const bxSidMatch = setCookieString.match(/BxSID=([^;]+)/);
         if (!bxSidMatch) {
             console.error('BxSID not found in Set-Cookie header');
+            console.log('Set-Cookie value:', setCookieString);
             return null;
         }
         const bxSid = bxSidMatch[1];
