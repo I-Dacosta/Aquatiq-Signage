@@ -32,14 +32,6 @@ services:
     env_file:
       - .env
       - signage-server/.env
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=${POSTGRES_DB:-aquatiq_signage}
-      - POSTGRES_USER=${POSTGRES_USER:-aquatiq}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - VIDEOS_DIR=/app/videos
-      - NODE_ENV=${NODE_ENV:-production}
     volumes:
       - signage-videos:/app/videos
       - ./signage-server/src:/app/src
@@ -47,9 +39,7 @@ services:
       - "127.0.0.1:3002:3002"
     networks:
       - aquatiq-local
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - aquatiq-backend
 
   screenshot-server:
     build: ./screenshot-server
@@ -62,36 +52,16 @@ services:
     shm_size: '2gb'
     networks:
       - aquatiq-local
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: aquatiq-postgres
-    restart: always
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB:-aquatiq_signage}
-      - POSTGRES_USER=${POSTGRES_USER:-aquatiq}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "127.0.0.1:5432:5432"
-    networks:
-      - aquatiq-local
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aquatiq}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - aquatiq-backend
 
 networks:
   aquatiq-local:
+    external: true
+  aquatiq-backend:
     external: true
 
 volumes:
   signage-videos:
     driver: local
   screenshot-storage:
-    driver: local
-  postgres-data:
     driver: local
