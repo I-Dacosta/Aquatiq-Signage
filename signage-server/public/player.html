@@ -3,6 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <!-- Samsung Tizen Optimizations -->
+  <meta name="tizen-compatibility" content="mode=compatible">
+  <meta name="supported-modes" content="portrait,landscape">
+  
+  <!-- Prevent unwanted behaviors on signage displays -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  
+  <!-- Security headers for iframe embedding -->
+  <meta http-equiv="Content-Security-Policy" content="frame-src * data:; img-src * data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
+  
   <title>Aquatiq Signage Player</title>
   <style>
     * {
@@ -22,6 +36,11 @@
       height: 100vh;
       border: none;
       display: block;
+      background: #000;
+      /* Samsung Tizen compatibility */
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      will-change: contents;
     }
     
     #loading {
@@ -119,7 +138,15 @@
     <div class="retry-info">Prøver igjen om <span id="retry-countdown">30</span> sekunder...</div>
   </div>
   
-  <iframe id="content-frame"></iframe>
+  <!-- Samsung-compatible iframe with proper sandbox attributes -->
+  <iframe 
+    id="content-frame"
+    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-top-navigation-by-user-activation"
+    allow="autoplay; fullscreen; picture-in-picture; accelerometer; gyroscope"
+    allowfullscreen
+    frameborder="0"
+    scrolling="auto"
+  ></iframe>
   
   <script src="/player.js"></script>
   <script>
@@ -161,28 +188,85 @@
       
       // Detect MAC address
       function detectMacAddress(callback) {
-        // Method 1: Try Tizen API
+        // Method 1: Try Samsung Tizen API
         try {
           if (typeof tizen !== 'undefined' && tizen.systeminfo) {
+            console.log('[MAC] Trying Tizen systeminfo API...');
+            
             tizen.systeminfo.getPropertyValue('NETWORK', function(network) {
-              if (network.mac) {
-                state.macAddress = network.mac;
+              if (network && network.mac) {
+                console.log('[MAC] Found via Tizen API:', network.mac);
+                state.macAddress = network.mac.toUpperCase();
+                callback(state.macAddress);
+                return;
+              }
+            }, function(error) {
+              console.warn('[MAC] Tizen API error:', error);
+            });
+          }
+        } catch (e) {
+          console.warn('[MAC] Tizen API not available:', e);
+        }
+        
+        // Method 2: Try webOS API (LG displays fallback)
+        try {
+          if (typeof webOS !== 'undefined' && webOS.deviceInfo) {
+            console.log('[MAC] Trying webOS API...');
+            webOS.deviceInfo(function(info) {
+              if (info && info.networkMAC) {
+                console.log('[MAC] Found via webOS:', info.networkMAC);
+                state.macAddress = info.networkMAC.toUpperCase();
                 callback(state.macAddress);
                 return;
               }
             });
           }
         } catch (e) {
-          console.log('Tizen API not available:', e);
+          console.warn('[MAC] webOS API not available:', e);
         }
         
-        // Method 2: Use setup ID or existing MAC
+        // Method 3: Use provided MAC from URL parameter
         if (state.macAddress) {
-          callback(state.macAddress);
-        } else if (state.setupId) {
-          // Use setup ID as temporary identifier
+          console.log('[MAC] Using URL parameter:', state.macAddress);
+          callback(state.macAddress.toUpperCase());
+          return;
+        }
+        
+        // Method 4: Use setup ID as unique identifier (fallback)
+        if (state.setupId) {
+          console.log('[MAC] Using setup ID as identifier:', state.setupId);
           callback(state.setupId);
-        } else {
+          return;
+        }
+        
+        // Method 5: Generate pseudo-MAC from hardware info
+        try {
+          var pseudoMac = 'XX:' + 
+            (navigator.hardwareConcurrency || '00').toString(16).padStart(2, '0') + ':' +
+            Math.random().toString(16).substr(2, 2) + ':' +
+            Math.random().toString(16).substr(2, 2) + ':' +
+            Math.random().toString(16).substr(2, 2) + ':' +
+            Math.random().toString(16).substr(2, 2);
+          
+          console.log('[MAC] Generated pseudo-MAC:', pseudoMac);
+          
+          // Store in localStorage for persistence
+          if (typeof localStorage !== 'undefined') {
+            var stored = localStorage.getItem('aquatiq_device_id');
+            if (stored) {
+              console.log('[MAC] Using stored device ID:', stored);
+              callback(stored);
+              return;
+            } else {
+              localStorage.setItem('aquatiq_device_id', pseudoMac);
+              callback(pseudoMac);
+              return;
+            }
+          }
+          
+          callback(pseudoMac);
+        } catch (e) {
+          console.error('[MAC] All methods failed:', e);
           callback(null);
         }
       }
