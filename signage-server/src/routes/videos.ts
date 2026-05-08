@@ -36,11 +36,11 @@ const upload = multer({
     fileSize: parseInt(process.env.VIDEO_MAX_FILE_SIZE || '524288000'), // Default 500MB
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /\.(mp4|webm|mov|avi|mkv)$/i;
+    const allowedTypes = /\.(mp4|webm|mov|avi|mkv|jpg|jpeg|png|gif|webp)$/i;
     if (allowedTypes.test(file.originalname)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only video files are allowed.'));
+      cb(new Error('Invalid file type. Only video and image files are allowed.'));
     }
   }
 });
@@ -57,18 +57,21 @@ function getBaseUrl(req: Request): string {
 
 export default function setupVideoRoutes(pool: Pool) {
   // Upload video file
-  router.post('/upload', upload.single('video'), async (req: Request, res: Response) => {
+  router.post('/upload', upload.fields([{ name: 'video', maxCount: 1 }, { name: 'file', maxCount: 1 }]), async (req: Request, res: Response) => {
     try {
-      if (!req.file) {
-        return res.status(400).json({ error: 'No video file provided' });
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+      const uploadedFile = files?.video?.[0] || files?.file?.[0];
+
+      if (!uploadedFile) {
+        return res.status(400).json({ error: 'No file provided' });
       }
 
       const { title, description } = req.body;
       const videoId = uuidv4();
-      const filename = req.file.filename;
-      const originalName = req.file.originalname;
-      const fileSize = req.file.size;
-      const mimeType = req.file.mimetype;
+      const filename = uploadedFile.filename;
+      const originalName = uploadedFile.originalname;
+      const fileSize = uploadedFile.size;
+      const mimeType = uploadedFile.mimetype;
 
       await pool.query(
         `INSERT INTO videos (id, title, description, filename, original_name, file_size, mime_type, upload_date, view_count)
@@ -86,6 +89,7 @@ export default function setupVideoRoutes(pool: Pool) {
           originalName: originalName,
           size: fileSize,
           mimeType: mimeType,
+          fileUrl: `${getBaseUrl(req)}/videos/${filename}`,
           embedUrl: `${getBaseUrl(req)}/api/videos/embed/${videoId}`
         }
       });

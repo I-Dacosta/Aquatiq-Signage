@@ -13,6 +13,7 @@ import { setupScreenAPIRoutes } from './routes/screen-api';
 import { setupTemplateRoutes } from './routes/templates';
 import { setupScreenRegistrationRoutes } from './routes/screen-registration';
 import { setupShortUrlRoutes } from './routes/short-url';
+import { setupAuthRoutes } from './routes/auth';
 import setupVideoRoutes, { VIDEOS_DIR } from './routes/videos';
 import setupProxyRoutes from './routes/proxy';
 import { checkOfflineScreens } from './services/monitor';
@@ -48,6 +49,10 @@ app.use(express.static(path.join(__dirname, '../public'), {
   }
 }));
 
+app.get('/player/:screenId', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/player.html'));
+});
+
 // Serve static video files
 app.use('/videos', express.static(VIDEOS_DIR, {
   setHeaders: (res) => {
@@ -67,6 +72,7 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
+setupAuthRoutes(app); // Auth compatibility (/get-session endpoint)
 setupScreenRoutes(app);
 setupContentRoutes(app);
 setupPlaylistRoutes(app);

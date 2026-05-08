@@ -42,6 +42,14 @@
     
     init: function() {
       console.log('[SignagePlayer] Initializing...');
+
+      var query = this.parseQueryString(window.location.search);
+      var pathMatch = window.location.pathname.match(/^\/player\/([^/?#]+)/);
+      if (query.screen || pathMatch) {
+        console.log('[SignagePlayer] Detected screen mode, skipping legacy MAC player');
+        return;
+      }
+
       this.detectMacAddress();
       
       if (!this.config.macAddress) {

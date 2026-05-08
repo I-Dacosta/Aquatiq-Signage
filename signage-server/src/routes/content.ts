@@ -125,16 +125,25 @@ export function setupContentRoutes(app: Express) {
     const { id } = req.params;
 
     try {
+      await pool.query('BEGIN');
+
+      await pool.query('UPDATE screens SET current_content_id = NULL WHERE current_content_id = $1', [id]);
+      await pool.query('DELETE FROM screen_status_logs WHERE content_id = $1', [id]);
+
       const result = await pool.query('DELETE FROM content WHERE id = $1 RETURNING id', [id]);
 
       if (result.rows.length === 0) {
+        await pool.query('ROLLBACK');
         return res.status(404).json({ error: 'Content not found' });
       }
+
+      await pool.query('COMMIT');
 
       broadcastUpdate({ type: 'content_deleted', contentId: id });
 
       res.json({ success: true, id });
     } catch (error) {
+      await pool.query('ROLLBACK');
       console.error('Error deleting content:', error);
       res.status(500).json({ error: 'Failed to delete content' });
     }

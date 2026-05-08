@@ -170,6 +170,7 @@
         template: null,
         currentContentUrl: null,
         currentContentId: null,
+        currentPosition: 0,
         isRegistered: false,
         retryCount: 0
       };
@@ -177,6 +178,15 @@
       // Parse URL parameters
       function parseUrlParams() {
         var params = new URLSearchParams(window.location.search);
+        state.screenId = params.get('screen'); // Direct screen ID or slug
+        
+        if (!state.screenId) {
+          var pathMatch = window.location.pathname.match(/^\/player\/([^/?#]+)/);
+          if (pathMatch && pathMatch[1]) {
+            state.screenId = decodeURIComponent(pathMatch[1]);
+          }
+        }
+
         state.setupId = params.get('setup');
         state.macAddress = params.get('mac');
         state.screenName = params.get('name');
@@ -342,8 +352,94 @@
           screen_id: state.screenId
         }));
       }
+            // Load content for a specific screen by ID or slug
+      function loadScreenContent() {
+        if (!state.screenId) {
+          showError('Ingen skjerm-ID oppgitt');
+          return;
+        }
+        
+        updateStatus('Kobler til skjerm...');
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', config.serverUrl + '/api/screens/' + encodeURIComponent(state.screenId), true);
+        
+        xhr.onload = function() {
+          if (xhr.status === 200) {
+            var screen = JSON.parse(xhr.responseText);
+            state.screenId = screen.id;
+            state.screenName = screen.name;
+            state.location = screen.location;
+            
+            // Now fetch current content for this screen
+            fetchScreenContent();
+          } else if (xhr.status === 404) {
+            showError('Skjerm ikke funnet: ' + state.screenId);
+          } else {
+            showError('Kunne ikke hente skjerm-data');
+            scheduleRetry();
+          }
+        };
+        
+        xhr.onerror = function() {
+          showError('Nettverksfeil - ingen tilkobling til server');
+          scheduleRetry();
+        };
+        
+        xhr.send();
+      }
       
-      // Load current content
+      // Fetch current content for the loaded screen
+      function fetchScreenContent() {
+        updateStatus('Henter innhold...');
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', config.serverUrl + '/api/signage/screen/' + 
+          encodeURIComponent(state.screenId) + '?position=' + state.currentPosition, true);
+        
+        xhr.onload = function() {
+          if (xhr.status === 200) {
+            var data = JSON.parse(xhr.responseText);
+            var content = data.content || {};
+            
+            if (content.url) {
+              state.currentContentUrl = content.url;
+              state.currentContentId = content.id;
+              state.currentPosition = data.playlist ? data.playlist.nextPosition : 0;
+              displayContent(content.url);
+              
+              // Schedule next check
+              setTimeout(fetchScreenContent, (data.refreshIn || content.duration || 60) * 1000);
+            } else {
+              showError('Ingen innhold konfigurert for denne skjermen');
+            }
+            
+            state.retryCount = 0;
+            hideError();
+          } else {
+            try {
+              var errorData = JSON.parse(xhr.responseText);
+              var errorMessage = errorData.message || errorData.error || 'Kunne ikke hente innhold';
+              showError(errorMessage);
+
+              if (xhr.status === 404 && (errorData.error === 'No playlist assigned' || errorData.error === 'Empty playlist')) {
+                return;
+              }
+            } catch (e) {
+              showError('Kunne ikke hente innhold');
+            }
+            scheduleRetry();
+          }
+        };
+        
+        xhr.onerror = function() {
+          showError('Nettverksfeil - ingen tilkobling til server');
+          scheduleRetry();
+        };
+        
+        xhr.send();
+      }
+            // Load current content
       function loadContent() {
         if (!state.macAddress) {
           showError('Ingen MAC-adresse funnet');
@@ -470,6 +566,15 @@
       function init() {
         parseUrlParams();
         
+        // Check if using direct screen mode (via ?screen=slug-or-id)
+        if (state.screenId) {
+          console.log('[INIT] Direct screen mode:', state.screenId);
+          loadScreenContent();
+          return;
+        }
+        
+        // Otherwise use MAC-based registration mode
+        console.log('[INIT] MAC-based registration mode');
         detectMacAddress(function(mac) {
           if (!mac) {
             showError('Kunne ikke finne MAC-adresse. Vennligst oppgi MAC i URL.');
